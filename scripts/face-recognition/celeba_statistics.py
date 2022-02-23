@@ -1,6 +1,5 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 
 drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
 imgdir = f'{drive}DataStorage/CelebA/Img/img_align_celeba'
@@ -16,8 +15,7 @@ for index, row in identities_df.iterrows():
         identities[identity] = [image_fp]
 
 nimgV = [len(identities[x]) for x in identities]
-# k = int(1 + 3.322 * np.log(len(nimgV)))
-# plt.hist(nimgV, bins=k)
+
 plt.hist(nimgV)
 plt.title('Number of images per identity')
 plt.xlabel('# images')
