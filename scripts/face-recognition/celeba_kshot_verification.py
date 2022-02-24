@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from src.face_recognition import *
 
 np.random.seed(0)  # set random seed
