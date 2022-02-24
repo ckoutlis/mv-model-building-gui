@@ -1,11 +1,7 @@
 import pandas as pd
-import os
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
-from numpy import asarray
-from keras_vggface.utils import preprocess_input
-from src.face_recognition import generate_random_image_tuples, feature_extractor, id2fp
+from src.face_recognition import *
 
 np.random.seed(0)  # set random seed
 
@@ -14,52 +10,31 @@ imgdir = f'{drive}DataStorage/CelebA/Img/img_align_celeba/'  # images directory
 identities_fp = f'{drive}DataStorage/CelebA/Anno/identity_CelebA.txt'  # identities .txt filepath
 identities_df = pd.read_csv(identities_fp, header=None, sep=' ')  # identities data frame
 n = 1000  # number of episodes for same and for different identities scenarios
+threshold_ed = np.arange(0.0, 2.005, 0.005)
+threshold_cs = np.arange(-1.0, 1.005, 0.005)
 
 print(f'Number of episodes n={n}')
 
 model = feature_extractor()  # load VGGFace feature extraction model
 identities = id2fp(identities_df)  # load a dict mapping between identities and image filepaths
 
-ACC_ED = []
-ACC_CS = []
-THRESH_ED = []
-THRESH_CS = []
+# ACC_ED, ACC_CS, THRESH_ED, THRESH_CS = [], [], [], []
+accuracy_distance, accuracy_similarity, threshold_distance, threshold_similarity = [], [], [], []
 for k in range(1, 11):  # k: number of support set samples - k-shot verification
     image_tuples_same_id = generate_random_image_tuples(identities, k, n, same_identity=True)
     image_tuples_diff_id = generate_random_image_tuples(identities, k, n, same_identity=False)
 
-    DS = []
-    DD = []
-    SS = []
-    SD = []
+    DS, DD, SS, SD = [], [], [], []
     for i in range(n):
-        same_img_1 = [os.path.join(imgdir, x) for x in image_tuples_same_id[i][:-1]]
-        same_img_2 = os.path.join(imgdir, image_tuples_same_id[i][-1])
-        diff_img_1 = [os.path.join(imgdir, x) for x in image_tuples_diff_id[i][:-1]]
-        diff_img_2 = os.path.join(imgdir, image_tuples_diff_id[i][-1])
+        faces = np.concatenate((get_faces(imgdir, image_tuples_same_id[i]),
+                                get_faces(imgdir, image_tuples_diff_id[i])),
+                               axis=0)
+        support_same, query_same, support_diff, query_diff = get_embeddings(model, faces, k)
 
-        faces = np.stack([asarray(Image.fromarray(plt.imread(x)).resize((224, 224))).astype('float32') for x in same_img_1] +
-                         [asarray(Image.fromarray(plt.imread(same_img_2)).resize((224, 224))).astype('float32')] +
-                         [asarray(Image.fromarray(plt.imread(x)).resize((224, 224))).astype('float32') for x in diff_img_1] +
-                         [asarray(Image.fromarray(plt.imread(diff_img_2)).resize((224, 224))).astype('float32')], axis=0)
-        faces = preprocess_input(faces, version=2)
-        embeddings = model.predict(faces)
-
-        embeddings = embeddings / np.linalg.norm(embeddings, axis=1).reshape(-1, 1)
-
-        support_vector_same = np.mean(embeddings[:k, :], axis=0) if k > 1 else embeddings[0, :]
-        query_vector_same = embeddings[k, :]
-        support_vector_diff = np.mean(embeddings[k + 1:-1, :], axis=0) if k > 1 else embeddings[2, :]
-        query_vector_diff = embeddings[-1, :]
-
-        DS.append(np.linalg.norm(support_vector_same - query_vector_same))
-        DD.append(np.linalg.norm(support_vector_diff - query_vector_diff))
-
-        SS.append(np.dot(support_vector_same, query_vector_same) / (np.linalg.norm(support_vector_same) * np.linalg.norm(query_vector_same)))
-        SD.append(np.dot(support_vector_diff, query_vector_diff) / (np.linalg.norm(support_vector_diff) * np.linalg.norm(query_vector_diff)))
-
-    threshold_ed = np.arange(0.0, 2.005, 0.005)
-    threshold_cs = np.arange(-1.0, 1.005, 0.005)
+        DS.append(euclidean_distance(support_same, query_same))
+        DD.append(euclidean_distance(support_diff, query_diff))
+        SS.append(cosine_similarity(support_same, query_same))
+        SD.append(cosine_similarity(support_diff, query_diff))
 
     accuracy = []
     for t in threshold_ed:
@@ -73,8 +48,8 @@ for k in range(1, 11):  # k: number of support set samples - k-shot verification
     indx = np.argmax(accuracy)
     opt_acc_ed = accuracy[indx]
     opt_thres_ed = threshold_ed[indx]
-    ACC_ED.append(opt_acc_ed)
-    THRESH_ED.append(opt_thres_ed)
+    accuracy_distance.append(opt_acc_ed)
+    threshold_distance.append(opt_thres_ed)
     print(f'Euclidean distance[k={k}]: best accuracy {opt_acc_ed * 100:1.1f}% for threshold {opt_thres_ed:1.3f}')
 
     accuracy = []
@@ -89,8 +64,8 @@ for k in range(1, 11):  # k: number of support set samples - k-shot verification
     indx = np.argmax(accuracy)
     opt_acc_cs = accuracy[indx]
     opt_thres_cs = threshold_cs[indx]
-    ACC_CS.append(opt_acc_cs)
-    THRESH_CS.append(opt_thres_cs)
+    accuracy_similarity.append(opt_acc_cs)
+    threshold_similarity.append(opt_thres_cs)
     print(f'Cosine similarity[k={k}]: best accuracy {opt_acc_cs * 100:1.1f}% for threshold {opt_thres_cs:1.3f}\n')
 
     plt.figure(figsize=(11, 5))
@@ -110,10 +85,10 @@ for k in range(1, 11):  # k: number of support set samples - k-shot verification
     plt.legend()
 
 plt.figure()
-plt.plot(np.arange(1, 11), ACC_ED, '.-', label='accuracy (euc.dist.)')
-plt.plot(np.arange(1, 11), ACC_CS, '.-', label='accuracy (cos.sim.)')
-plt.plot(np.arange(1, 11), THRESH_ED, '.-', label='threshold (euc.dist.)')
-plt.plot(np.arange(1, 11), THRESH_CS, '.-', label='threshold (cos.sim.)')
+plt.plot(np.arange(1, 11), accuracy_distance, '.-', label='accuracy (euc.dist.)')
+plt.plot(np.arange(1, 11), accuracy_similarity, '.-', label='accuracy (cos.sim.)')
+plt.plot(np.arange(1, 11), threshold_distance, '.-', label='threshold (euc.dist.)')
+plt.plot(np.arange(1, 11), threshold_similarity, '.-', label='threshold (cos.sim.)')
 plt.xlabel('k (# support samples)')
 plt.grid()
 plt.legend()
