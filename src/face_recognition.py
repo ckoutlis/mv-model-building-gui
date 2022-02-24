@@ -8,12 +8,29 @@ from keras_vggface.utils import preprocess_input
 
 
 def feature_extractor():
+    """
+    Loads VGGFace model and keeps all layers but the classification one.
+
+    Returns:
+         model: keras model
+    """
+
     model = VGGFace(model='resnet50')
     model = Model(inputs=model.inputs, outputs=model.layers[-2].output)
     return model
 
 
 def id2fp(df):
+    """
+    Generates a dictionary with identity names as keys mapping to lists of corresponding image filepaths
+
+    Arguments:
+        df: a pandas DataFrame containing the identities
+
+    Returns:
+         identities: dictionary of identities and image filepaths
+    """
+
     identities = {}
     for index, row in df.iterrows():
         image_fp = row[0]
@@ -26,6 +43,20 @@ def id2fp(df):
 
 
 def generate_random_image_tuples(identities, k, n, same_identity):
+    """
+    Randomly samples n (k+1)-tuples that contain k+1 instances of the same identity if same_identity=True.
+    If same_identity=False the tuples contain k instances of one identity and one identity of a different identity.
+
+    Arguments:
+        identities: dictionary with identity names as keys mapping to lists of corresponding image filepaths
+        k: number of shots, int
+        n: number of examples, int
+        same_identity: whether to generate tuple for one identity or two, boolean
+
+    Returns:
+        tuples: list of tuples
+    """
+
     num_random_identities = 1 if same_identity else 2
     threshold = k + 1 if same_identity else k
     tuples = []
@@ -47,6 +78,19 @@ def generate_random_image_tuples(identities, k, n, same_identity):
 
 
 def generate_image_tuple(identities, identity, threshold, same_identity):
+    """
+    Samples a tuple of images either belonging to the same or different identitites.
+
+    Arguments:
+        identities: dictionary with identity names as keys mapping to lists of corresponding image filepaths
+        identity: identity name
+        threshold: minimum number of instances for identity
+        same_identity: whether to generate tuple for one identity or two, boolean
+
+    Returns:
+        (k+1)-tuple
+    """
+
     if same_identity:
         return np.random.choice(identities[identity[0]], threshold, replace=False)
     else:
@@ -54,9 +98,20 @@ def generate_image_tuple(identities, identity, threshold, same_identity):
                                np.random.choice(identities[identity[1]], 1, replace=False)))
 
 
-def get_faces(directory, tuples):
-    support = [os.path.join(directory, x) for x in tuples[:-1]]
-    query = os.path.join(directory, tuples[-1])
+def get_faces(directory, tuple):
+    """
+    Read, stack and preprocess images of an example tuple.
+
+    Arguments:
+        directory: the images directory
+        tuple: tuple of images filepaths
+
+    Returns:
+        faces: preprocessed support and query images of input tuple
+    """
+
+    support = [os.path.join(directory, x) for x in tuple[:-1]]
+    query = os.path.join(directory, tuple[-1])
     faces = np.stack(
         [np.asarray(Image.fromarray(plt.imread(x)).resize((224, 224))).astype('float32') for x in support] +
         [np.asarray(Image.fromarray(plt.imread(query)).resize((224, 224))).astype('float32')],
@@ -66,6 +121,21 @@ def get_faces(directory, tuples):
 
 
 def get_embeddings(model, faces, k):
+    """
+    Computes face embeddings using VGGFace.
+
+    Arguments:
+        model: the feature extractor
+        faces: a 4D numpy array containing the images
+        k: number of shots
+
+    Returns:
+        support_same: support set embedding for same identity example
+        query_same: query embedding for same identity example
+        support_diff: support set embedding for different identities example
+        query_diff: query embedding for different identities example
+    """
+
     embeddings = model.predict(faces)
     embeddings = embeddings / np.linalg.norm(embeddings, axis=1).reshape(-1, 1)
     support_same = np.mean(embeddings[:k, :], axis=0) if k > 1 else embeddings[0, :]
@@ -76,14 +146,35 @@ def get_embeddings(model, faces, k):
 
 
 def euclidean_distance(x, y):
+    """
+    Euclidean distance
+    """
     return np.linalg.norm(x - y)
 
 
 def cosine_similarity(x, y):
+    """
+    Cosine similarity
+    """
     return np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y))
 
 
 def evaluation(thresholds, metric_same, metric_different, mode, k, showtxt=True):
+    """
+    Computes the optimal metric threshold and accuracy for classification between different identities.
+
+    Arguments:
+        thresholds: array of candidate thresholds
+        metric_same: metric values for the same identity
+        metric_different: metric values for different identities
+        mode: the metric, either distance or similarity
+        k: number of shots
+        showtxt: boolean
+
+    Returns:
+        optimal_accuracy: best accuracy score across thresholds
+        optimal_threshold: threshold that results in best accuracy
+    """
     accuracy = []
     for threshold in thresholds:
         if mode == 'distance':
@@ -105,7 +196,9 @@ def evaluation(thresholds, metric_same, metric_different, mode, k, showtxt=True)
         elif mode == 'similarity':
             print(f'Cosine similarity[k={k}]: best accuracy {accuracy[index] * 100:1.1f}% '
                   f'for threshold {thresholds[index]:1.3f}\n')
-    return accuracy[index], thresholds[index]
+    optimal_accuracy = accuracy[index]
+    optimal_threshold = thresholds[index]
+    return optimal_accuracy, optimal_threshold
 
 
 def plot_histograms(optimal_accuracy_distance,

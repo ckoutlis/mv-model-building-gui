@@ -9,14 +9,15 @@ imgdir = f'{drive}DataStorage/CelebA/Img/img_align_celeba/'  # images directory
 identities_fp = f'{drive}DataStorage/CelebA/Anno/identity_CelebA.txt'  # identities .txt filepath
 identities_df = pd.read_csv(identities_fp, header=None, sep=' ')  # identities data frame
 n = 1000  # number of episodes for same and for different identities scenarios
-threshold_distance_range = np.arange(0.0, 2.005, 0.005)
-threshold_similarity_range = np.arange(-1.0, 1.005, 0.005)
+threshold_distance_range = np.arange(0.0, 2.005, 0.005)  # candidate distance thresholds for same vs. different identity
+threshold_similarity_range = np.arange(-1.0, 1.005, 0.005)  # candidate similarity thresholds for same vs. different identity
 
 print(f'Number of episodes n={n}')
 
 model = feature_extractor()  # load VGGFace feature extraction model
 identities = id2fp(identities_df)  # load a dict mapping between identities and image filepaths
 
+# optimal accuracy and threshold for each k (using distance and similarity metrics respectively)
 accuracy_distance, accuracy_similarity, threshold_distance, threshold_similarity = [], [], [], []
 for k in range(1, 11):  # k: number of support set samples - k-shot verification
     image_tuples_same_id = generate_random_image_tuples(identities, k, n, same_identity=True)
