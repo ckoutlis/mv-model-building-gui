@@ -4,55 +4,30 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from numpy import asarray
-from keras_vggface.vggface import VGGFace
 from keras_vggface.utils import preprocess_input
-from tensorflow.keras.models import Model
+from src.face_recognition import generate_random_image_tuples, feature_extractor, id2fp
 
-np.random.seed(0)
+np.random.seed(0)  # set random seed
 
-drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
-imgdir = f'{drive}DataStorage/CelebA/Img/img_align_celeba/'
-identities_fp = f'{drive}DataStorage/CelebA/Anno/identity_CelebA.txt'
-model = VGGFace(model='resnet50')
-model = Model(inputs=model.inputs, outputs=model.layers[-2].output)
+drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'  # my second drive where data are stored
+imgdir = f'{drive}DataStorage/CelebA/Img/img_align_celeba/'  # images directory
+identities_fp = f'{drive}DataStorage/CelebA/Anno/identity_CelebA.txt'  # identities .txt filepath
+identities_df = pd.read_csv(identities_fp, header=None, sep=' ')  # identities data frame
+n = 1000  # number of episodes for same and for different identities scenarios
 
-identities_df = pd.read_csv(identities_fp, header=None, sep=' ')
-imageV = np.array(identities_df[0])
-identities = {}
-for index, row in identities_df.iterrows():
-    image_fp = row[0]
-    identity = row[1]
-    if identity in identities:
-        identities[identity].append(image_fp)
-    else:
-        identities[identity] = [image_fp]
-
-n = 1000  # number of episodes for same and for different identities
 print(f'Number of episodes n={n}')
+
+model = feature_extractor()  # load VGGFace feature extraction model
+identities = id2fp(identities_df)  # load a dict mapping between identities and image filepaths
+
 ACC_ED = []
 ACC_CS = []
 THRESH_ED = []
 THRESH_CS = []
-for k in range(1, 11):  # number of support set samples - k-shot verification
-    image_tuples_same_id = []
-    while True:
-        identity = np.random.choice(list(identities.keys()), 1)[0]
-        if len(identities[identity]) > k:
-            tup = np.random.choice(identities[identity], k + 1, replace=False)
-            image_tuples_same_id.append(tup)
-        if len(image_tuples_same_id) == n:
-            break
+for k in range(1, 11):  # k: number of support set samples - k-shot verification
+    image_tuples_same_id = generate_random_image_tuples(identities, k, n, same_identity=True)
+    image_tuples_diff_id = generate_random_image_tuples(identities, k, n, same_identity=False)
 
-    image_tuples_diff_id = []
-    while True:
-        identity = np.random.choice(list(identities.keys()), 2, replace=False)
-        if len(identities[identity[0]]) >= k:
-            tup1 = np.random.choice(identities[identity[0]], k, replace=False)
-            tup2 = np.random.choice(identities[identity[1]], 1, replace=False)
-            tup = np.concatenate((tup1, tup2))
-            image_tuples_diff_id.append(tup)
-        if len(image_tuples_diff_id) == n:
-            break
     DS = []
     DD = []
     SS = []
