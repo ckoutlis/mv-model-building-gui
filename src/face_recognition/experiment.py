@@ -1,9 +1,9 @@
+import os
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from keras_vggface.vggface import VGGFace
 from tensorflow.keras.models import Model
-import os
+from keras_vggface.vggface import VGGFace
 from keras_vggface.utils import preprocess_input
 
 
@@ -204,12 +204,12 @@ def evaluation(thresholds, metric_same, metric_different, mode, k, showtxt=True)
     return optimal_accuracy, optimal_threshold
 
 
-def plot_statistics(figname, identities, identities_df, savfig):
+def plot_statistics(fp, identities, identities_df, savfig):
     """
     Plots statistics of CelebA dataset.
 
     Arguments:
-        figname: figure name
+        fp: figure filepath
         identities: dict mapping between identities and image filepaths
         identities_df: identities data frame
         savfig: whether to save the figure
@@ -223,11 +223,10 @@ def plot_statistics(figname, identities, identities_df, savfig):
     print(f'Number of identities: {len(nimgV)}')
     print(f'Number of images: {identities_df.shape[0]}')
     if savfig:
-        basepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        plt.savefig(os.path.join(basepath, f'results/face-recognition/figs/{figname}'))
+        plt.savefig(fp)
 
 
-def plot_histograms(figname,
+def plot_histograms(fp,
                     optimal_accuracy_distance,
                     optimal_threshold_distance,
                     optimal_accuracy_similarity,
@@ -245,7 +244,7 @@ def plot_histograms(figname,
     with the same identity and cases with different identities.
 
     Arguments:
-        figname: figure name
+        fp: figure filepath
         optimal_accuracy_distance: best accuracy based on Euclidean distance
         optimal_threshold_distance: optimal threshold based on Euclidean distance
         optimal_accuracy_similarity: best accuracy based on cosine similarity
@@ -286,16 +285,15 @@ def plot_histograms(figname,
     plt.legend()
 
     if savfig:
-        basepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        plt.savefig(os.path.join(basepath, f'results/face-recognition/figs/{figname}'))
+        plt.savefig(fp)
 
 
-def plot_evaluation(figname, accuracy_distance, accuracy_similarity, threshold_distance, threshold_similarity, savfig):
+def plot_evaluation(fp, accuracy_distance, accuracy_similarity, threshold_distance, threshold_similarity, savfig):
     """
     Plots accuracy and thresholds for Euclidean distance and cosine similarity.
 
     Arguments:
-        figname: figure name
+        fp: figure filepath
         accuracy_distance: accuracy for each k based on Euclidean distance
         accuracy_similarity: accuracy for each k based on cosine similarity
         threshold_distance: threshold for each k based on Euclidean distance
@@ -314,5 +312,4 @@ def plot_evaluation(figname, accuracy_distance, accuracy_similarity, threshold_d
     plt.legend()
 
     if savfig:
-        basepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        plt.savefig(os.path.join(basepath, f'results/face-recognition/figs/{figname}'))
+        plt.savefig(fp)

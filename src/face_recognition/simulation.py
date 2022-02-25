@@ -71,6 +71,6 @@ def celeba_distance_thresholds():
     CelebA computed Euclidean distance thresholds.
     """
     basepath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # mv-model-building-gui absolute path
-    with open(os.path.join(basepath, 'results/face-recognition/CelebA_threshold_distance.pickle'), 'rb') as h:
+    with open(os.path.join(basepath, 'results/face_recognition/CelebA_threshold_distance.pickle'), 'rb') as h:
         thresholds = pickle.load(h)
     return thresholds

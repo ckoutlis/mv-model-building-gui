@@ -1,4 +1,4 @@
-from src.face_recognition import *
+from src.face_recognition.simulation import *
 
 
 def embedding_computation(fp):

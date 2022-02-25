@@ -1,10 +1,10 @@
 import pandas as pd
 import pickle
-from src.face_recognition_experiment import *
+from src.face_recognition.experiment import *
 
 np.random.seed(0)  # set random seed
 
-basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # mv-model-building-gui absolute path
+basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # mv-model-building-gui absolute path
 drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'  # my second drive where data are stored
 imgdir = f'{drive}DataStorage/CelebA/Img/img_align_celeba/'  # images directory
 identities_fp = f'{drive}DataStorage/CelebA/Anno/identity_CelebA.txt'  # identities .txt filepath
@@ -20,7 +20,7 @@ print(f'Number of episodes n={n}')
 
 model = feature_extractor()  # load VGGFace feature extraction model
 identities = id2fp(identities_df)  # load a dict mapping between identities and image filepaths
-plot_statistics('CelebA_statistics.jpg', identities, identities_df, savfig)
+plot_statistics(f'{basepath}/results/face-recognition/figs/CelebA_statistics.jpg', identities, identities_df, savfig)
 
 # optimal accuracy and threshold for each k (using distance and similarity metrics respectively)
 accuracy_distance, accuracy_similarity, threshold_distance, threshold_similarity = {}, {}, {}, {}
@@ -63,17 +63,17 @@ for k in range(1, K + 1):  # k: number of support set samples - k-shot verificat
     threshold_similarity[k] = optimal_threshold_similarity
 
     if saveval:
-        with open(os.path.join(basepath, 'results/face-recognition/CelebA_accuracy_distance.pickle'), 'wb') as h:
+        with open(os.path.join(basepath, 'results/face-recognition/eval/CelebA_accuracy_distance.pickle'), 'wb') as h:
             pickle.dump(accuracy_distance, h, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(basepath, 'results/face-recognition/CelebA_accuracy_similarity.pickle'), 'wb') as h:
+        with open(os.path.join(basepath, 'results/face-recognition/eval/CelebA_accuracy_similarity.pickle'), 'wb') as h:
             pickle.dump(accuracy_similarity, h, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(basepath, 'results/face-recognition/CelebA_threshold_distance.pickle'), 'wb') as h:
+        with open(os.path.join(basepath, 'results/face-recognition/eval/CelebA_threshold_distance.pickle'), 'wb') as h:
             pickle.dump(threshold_distance, h, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(basepath, 'results/face-recognition/CelebA_threshold_similarity.pickle'), 'wb') as h:
+        with open(os.path.join(basepath, 'results/face-recognition/eval/CelebA_threshold_similarity.pickle'), 'wb') as h:
             pickle.dump(threshold_similarity, h, protocol=pickle.HIGHEST_PROTOCOL)
 
     plot_histograms(
-        f'CelebA_k{k}.jpg',
+        f'{basepath}/results/face-recognition/figs/CelebA_k{k}.jpg',
         optimal_accuracy_distance,
         optimal_threshold_distance,
         optimal_accuracy_similarity,
@@ -88,7 +88,7 @@ for k in range(1, K + 1):  # k: number of support set samples - k-shot verificat
     )
 
 plot_evaluation(
-    'CelebA_evaluation.jpg',
+    f'{basepath}/results/face-recognition/figs/CelebA_evaluation.jpg',
     [accuracy_distance[x] for x in accuracy_distance],
     [accuracy_similarity[x] for x in accuracy_similarity],
     [threshold_distance[x] for x in threshold_distance],
