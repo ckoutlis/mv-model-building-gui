@@ -74,3 +74,45 @@ def celeba_distance_thresholds():
     with open(os.path.join(basepath, 'results/face_recognition/CelebA_threshold_distance.pickle'), 'rb') as h:
         thresholds = pickle.load(h)
     return thresholds
+
+
+def embedding_computation(fp):
+    """
+    Comoputes the support embedding of a new identity based on images in fp
+
+    Arguments:
+        fp: list of filepaths containing images of one new identity
+
+    Returns:
+        embedding: support embedding of the new identity
+        k: number of support images
+    """
+    model = feature_extractor()  # load VGGFace feature extraction model
+    faces = get_faces(fp)
+    embedding = get_embedding(model, faces)
+    k = len(fp)
+    return embedding, k
+
+
+def face_verification(fp, support, k):
+    """
+    Verifies if the face in fp is the same as the the one represented by the support embedding.
+
+    Arguments:
+        fp: filepath of the image with the face to be verified
+        support: the embedding of the support identity
+        k: number of shots used to compute support
+
+    Returns:
+        boolean
+    """
+    model = feature_extractor()  # load VGGFace feature extraction model
+    thresholds = celeba_distance_thresholds()
+    face = get_faces([fp])
+    query = get_embedding(model, face)
+    distance = euclidean_distance(support, query)
+    threshold = thresholds[k if k <= 20 else 20]
+    if distance < threshold:
+        return True
+    else:
+        return False
