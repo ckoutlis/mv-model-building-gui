@@ -144,6 +144,8 @@ dependencies:
     - keras-vggface==0.6
     - kiwisolver==1.3.2
     - matplotlib==3.5.1
+    - mtcnn==0.1.1
+    - opencv-python==4.5.5.62
     - packaging==21.3
     - pandas==1.4.1
     - pyparsing==3.0.7
