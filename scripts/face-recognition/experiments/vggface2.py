@@ -5,8 +5,7 @@ from src.face_recognition.experiment import *
 np.random.seed(0)  # set random seed
 
 basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # mv-model-building-gui absolute path
-# drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'  # my second drive where data are stored
-drive = '/home/ckoutlis/NAS2/ckoutlis/'  # NAS2 storage
+drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'  # my second drive where data are stored
 imgdir = f'{drive}DataStorage/VGG-Face2/data/test/'  # images directory
 identities_fp = f'{drive}DataStorage/VGG-Face2/meta/identity_meta.csv'  # identities .csv filepath
 identities_meta_csv = pd.read_csv(identities_fp, sep=',')  # identities meta csv data frame
