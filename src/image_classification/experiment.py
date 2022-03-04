@@ -15,21 +15,50 @@ def load_train_data(dataset, model, batch_size, k):
 
     precrop = 256 if 'vit' in model else 160
     crop = 224 if 'vit' in model else 128
-    transform = transforms.Compose(
-        [
-            transforms.Resize(precrop),
-            transforms.RandomCrop(crop),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.5, 0.5, 0.5],
-                std=[0.5, 0.5, 0.5]
-            )
-        ]
-    )
+    if dataset in ['mnist', 'fashion-mnist']:
+        transform = transforms.Compose(
+            [
+                transforms.Grayscale(3),
+                transforms.Resize(precrop),
+                transforms.RandomCrop(crop),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5]
+                )
+            ]
+        )
+    else:
+        transform = transforms.Compose(
+            [
+                transforms.Resize(precrop),
+                transforms.RandomCrop(crop),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5]
+                )
+            ]
+        )
 
     if dataset == 'cifar10':
         train = torchvision.datasets.CIFAR10(
+            root=f'{basepath}/data/image-classification',
+            train=True,
+            download=False,
+            transform=transform
+        )
+    elif dataset == 'mnist':
+        train = torchvision.datasets.MNIST(
+            root=f'{basepath}/data/image-classification',
+            train=True,
+            download=False,
+            transform=transform
+        )
+    elif dataset == 'fashion-mnist':
+        train = torchvision.datasets.FashionMNIST(
             root=f'{basepath}/data/image-classification',
             train=True,
             download=False,
@@ -85,19 +114,46 @@ def load_test_data(dataset, model, batch_size):
     basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
     size = 224 if 'vit' in model else 160
-    transform = transforms.Compose(
-        [
-            transforms.Resize(size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.5, 0.5, 0.5],
-                std=[0.5, 0.5, 0.5]
-            )
-        ]
-    )
+    if dataset in ['mnist', 'fashion-mnist']:
+        transform = transforms.Compose(
+            [
+                transforms.Grayscale(3),
+                transforms.Resize(size),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5]
+                )
+            ]
+        )
+    else:
+        transform = transforms.Compose(
+            [
+                transforms.Resize(size),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5]
+                )
+            ]
+        )
 
     if dataset == 'cifar10':
         test = torchvision.datasets.CIFAR10(
+            root=f'{basepath}/data/image-classification',
+            train=False,
+            download=False,
+            transform=transform
+        )
+    elif dataset == 'mnist':
+        test = torchvision.datasets.MNIST(
+            root=f'{basepath}/data/image-classification',
+            train=False,
+            download=False,
+            transform=transform
+        )
+    elif dataset == 'fashion-mnist':
+        test = torchvision.datasets.FashionMNIST(
             root=f'{basepath}/data/image-classification',
             train=False,
             download=False,
@@ -295,7 +351,7 @@ def run(
                                 pickle.dump(results, h, protocol=pickle.HIGHEST_PROTOCOL)
 
                             print(
-                                f'\n[{len(results) * experiments}/{total}] ETA: {np.mean(times) * (total - len(results)) / 3600:1.2f} h')
+                                f'\n[{dataset} - {len(results) * experiments}/{total}] ETA: {np.mean(times) * (total - len(results)) / 3600:1.2f} h')
                             print(result)
                             print()
 
