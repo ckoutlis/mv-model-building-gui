@@ -9,26 +9,22 @@ dataset = 'cifar10'  # fashion-mnist, mnist, cifar10
 filename = f'{dataset}.pickle'
 path = f'{directory}{filename}'
 
+# Hyper-parameter grid
 models = [
     'resnet18',
     'vit_small_patch16_224_in21k',
-    'resnetv2_50x1_bitm_in21k',
     'resnetv2_50x3_bitm_in21k',
 ]
 unfreezed_list = [
     0.0,
-    # 0.3,
-    # 'all'
 ]
 learning_rates = [
-    0.0005,
-    0.001,
+    0.01,
     0.003,
 ]
 batch_sizes = [
-    8,
     32,
-    256,
+    128,
 ]
 K = [
     5,
