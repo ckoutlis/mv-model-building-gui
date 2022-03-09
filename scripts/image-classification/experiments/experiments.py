@@ -7,26 +7,18 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 models = [
     'resnet18',
     'vit_small_patch16_224_in21k',
-    'resnetv2_50x1_bitm_in21k',
-    'resnetv2_101x3_bitm_in21k'
+    'resnetv2_50x3_bitm_in21k',
 ]
 unfreezed_list = [
     0.0,
-    # 0.3,
-    # 'all'
 ]
 learning_rates = [
-    0.0005,
-    0.001,
+    0.01,
     0.003,
 ]
 batch_sizes = [
-    8,
-    # 16,
     32,
-    # 64,
-    # 128,
-    256,
+    128,
 ]
 K = [
     5,
@@ -36,18 +28,19 @@ K = [
 iterations_list = [
     500,
     1000,
-    # 2000,
-    # 3000
 ]
-experiments = 5
-
+experiments = 3
+datasets = [
+    'cifar10',
+    'mnist',
+    'fashion-mnist'
+]
 # save results path
-datasets = ['fashion-mnist', 'mnist', 'cifar10']
 drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
 savdir = f'{drive}PycharmProjects/mv-model-building-gui/results/image-classification/'
 
 for dataset in datasets:
-    savpath = f'{savdir}{dataset}_accuracy.pickle'
+    savpath = f'{savdir}{dataset}.pickle'
     run(
         device,
         dataset,

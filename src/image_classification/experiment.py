@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import pickle
 import time
@@ -296,8 +297,6 @@ def run(
                                 print(f'{experiment + 1}..', end='')
 
                                 train_loader = load_train_data(dataset, model, batch_size, k)
-                                for data in train_loader:
-                                    inputs, labels = data
 
                                 network = timm.create_model(
                                     model,
@@ -335,24 +334,28 @@ def run(
                                 times.append(end - start)
 
                             result = {
+                                'dataset': dataset,
                                 'config': {
+                                    'k': k,
                                     'model': model,
                                     'unfreezed': unfreezed,
                                     'learning_rate': learning_rate,
                                     'batch_size': batch_size,
-                                    'k': k,
                                     'iterations': iterations
                                 },
-                                'accuracy': accuracies
+                                'accuracy': accuracies,
+                                'time': times,
+                                'index': [len(results) * experiments, (len(results) + 1) * experiments - 1],
+                                'total': total
                             }
                             results.append(result)
 
                             with open(savpath, 'wb') as h:
                                 pickle.dump(results, h, protocol=pickle.HIGHEST_PROTOCOL)
 
-                            print(
-                                f'\n[{dataset} - {len(results) * experiments}/{total}] ETA: {np.mean(times) * (total - len(results)) / 3600:1.2f} h')
-                            print(result)
+                            print(f'\n[{dataset} - {len(results) * experiments}/{total}] '
+                                  f'ETA: {np.mean(times) * (total - len(results)) / 3600:1.2f} h')
+                            print(json.dumps(result, sort_keys=False, indent=4))
                             print()
 
     print(f'Total time: {(time.time() - start_experiments) / 3600:1.2f} h')
