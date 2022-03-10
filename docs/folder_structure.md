@@ -23,6 +23,10 @@ Whole folder structure tree:
 │   └── object-detection
 ├── src
 │   ├── face_recognition
-│   └── image_classification
+│   │   └── __pycache__
+│   ├── image_classification
+│   │   └── __pycache__
+│   └── __pycache__
 └── tests
+
 ```

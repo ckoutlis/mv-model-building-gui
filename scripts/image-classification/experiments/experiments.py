@@ -33,11 +33,12 @@ experiments = 3
 datasets = [
     'cifar10',
     'mnist',
-    'fashion-mnist'
+    'fashion-mnist',
+    '400-bird-species'
 ]
 # save results path
 drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
-savdir = f'{drive}PycharmProjects/mv-model-building-gui/results/image-classification/'
+savdir = f'{drive}PycharmProjects/mv-model-building-gui/results/image-classification/eval/'
 
 for dataset in datasets:
     savpath = f'{savdir}{dataset}.pickle'

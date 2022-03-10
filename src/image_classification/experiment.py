@@ -1,5 +1,6 @@
 import os
 import json
+import random
 import numpy as np
 import pickle
 import time
@@ -8,20 +9,24 @@ import torch.optim as optim
 import torch
 import torchvision
 import torchvision.transforms as transforms
+from torchvision.datasets import ImageFolder
+import matplotlib.pyplot as plt
 
 
 def load_train_data(dataset, model, batch_size, k):
     # mv-model-building-gui absolute path
     basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    precrop = 256 if 'vit' in model else 160
-    crop = 224 if 'vit' in model else 128
+    # resize = 256 if 'vit' in model else 160
+    # crop = 224 if 'vit' in model else 128
+    params = transform_params('train', dataset, model)
+
     if dataset in ['mnist', 'fashion-mnist']:
         transform = transforms.Compose(
             [
                 transforms.Grayscale(3),
-                transforms.Resize(precrop),
-                transforms.RandomCrop(crop),
+                transforms.Resize(params['resize']),
+                transforms.RandomCrop(params['crop']),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(
@@ -33,8 +38,8 @@ def load_train_data(dataset, model, batch_size, k):
     else:
         transform = transforms.Compose(
             [
-                transforms.Resize(precrop),
-                transforms.RandomCrop(crop),
+                transforms.Resize(params['resize']),
+                transforms.RandomCrop(params['crop']),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(
@@ -65,9 +70,14 @@ def load_train_data(dataset, model, batch_size, k):
             download=False,
             transform=transform
         )
+    elif dataset == '400-bird-species':
+        drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
+        datdir = f'{drive}DataStorage/400-bird-species'
+        train = ImageFolder(f'{datdir}/train', transform=transform)
     else:
         raise Exception(f'{dataset} dataset is not implemented.')
 
+    num_classes = len(train.classes)
     loader = torch.utils.data.DataLoader(
         train,
         batch_size=1,
@@ -75,10 +85,10 @@ def load_train_data(dataset, model, batch_size, k):
         num_workers=2
     )
     train = []
-    class_size = [0] * 10
+    class_size = [0] * num_classes
     for data in loader:
         inputs, labels = data
-        for c in range(10):
+        for c in range(num_classes):
             if labels[0] == c and class_size[c] < k:
                 train.append([inputs.squeeze(), labels.squeeze()])
                 class_size[c] += 1
@@ -107,19 +117,21 @@ def load_train_data(dataset, model, batch_size, k):
             )
         )
 
-    return loader
+    return loader, num_classes
 
 
 def load_test_data(dataset, model, batch_size):
     # mv-model-building-gui absolute path
     basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    size = 224 if 'vit' in model else 160
+    # resize = 224 if 'vit' in model else 160
+    params = transform_params('test', dataset, model)
+
     if dataset in ['mnist', 'fashion-mnist']:
         transform = transforms.Compose(
             [
                 transforms.Grayscale(3),
-                transforms.Resize(size),
+                transforms.Resize(params['resize']),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.5, 0.5, 0.5],
@@ -130,7 +142,7 @@ def load_test_data(dataset, model, batch_size):
     else:
         transform = transforms.Compose(
             [
-                transforms.Resize(size),
+                transforms.Resize(params['resize']),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.5, 0.5, 0.5],
@@ -160,6 +172,10 @@ def load_test_data(dataset, model, batch_size):
             download=False,
             transform=transform
         )
+    elif dataset == '400-bird-species':
+        drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
+        datdir = f'{drive}DataStorage/400-bird-species'
+        test = ImageFolder(f'{datdir}/test', transform=transform)
     else:
         raise Exception(f'{dataset} dataset is not implemented.')
 
@@ -171,6 +187,117 @@ def load_test_data(dataset, model, batch_size):
     )
 
     return loader
+
+
+def transform_params(mode, dataset, model):
+    params = {
+        'train': {
+            'cifar10': {
+                'resnet18': {
+                    'resize': 160,
+                    'crop': 128
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 256,
+                    'crop': 224
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 160,
+                    'crop': 128
+                }
+            },
+            'mnist': {
+                'resnet18': {
+                    'resize': 160,
+                    'crop': 128
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 256,
+                    'crop': 224
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 160,
+                    'crop': 128
+                }
+            },
+            'fashion-mnist': {
+                'resnet18': {
+                    'resize': 160,
+                    'crop': 128
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 256,
+                    'crop': 224
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 160,
+                    'crop': 128
+                }
+            },
+            '400-bird-species': {
+                'resnet18': {
+                    'resize': 256,
+                    'crop': 224
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 256,
+                    'crop': 224
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 256,
+                    'crop': 224
+                }
+            }
+        },
+        'test': {
+            'cifar10': {
+                'resnet18': {
+                    'resize': 160,
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 224,
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 160,
+                }
+            },
+            'mnist': {
+                'resnet18': {
+                    'resize': 160,
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 224,
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 160,
+                }
+            },
+            'fashion-mnist': {
+                'resnet18': {
+                    'resize': 160,
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 224,
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 160,
+                }
+            },
+            '400-bird-species': {
+                'resnet18': {
+                    'resize': 224,
+                },
+                'vit_small_patch16_224_in21k': {
+                    'resize': 224,
+                },
+                'resnetv2_50x3_bitm_in21k': {
+                    'resize': 224,
+                }
+            }
+        }
+    }
+
+    return params[mode][dataset][model]
 
 
 def freeze_conv(network, unfreezed):
@@ -291,17 +418,25 @@ def run(
                         for iterations in iterations_list:
                             accuracies = []
                             times = []
+                            seeds = []
                             for experiment in range(experiments):
                                 start = time.time()
 
+                                # Make the experiments reproducible
+                                seed = len(results) * experiments + experiment
+                                seeds.append(seed)
+                                torch.manual_seed(seed)
+                                random.seed(seed)
+                                np.random.seed(seed)
+
                                 print(f'{experiment + 1}..', end='')
 
-                                train_loader = load_train_data(dataset, model, batch_size, k)
+                                train_loader, num_classes = load_train_data(dataset, model, batch_size, k)
 
                                 network = timm.create_model(
                                     model,
                                     pretrained=True,
-                                    num_classes=10
+                                    num_classes=num_classes
                                 ).to(device)
                                 if 'vit' in model:
                                     network = freeze_blocks(network, unfreezed)
@@ -345,7 +480,7 @@ def run(
                                 },
                                 'accuracy': accuracies,
                                 'time': times,
-                                'index': [len(results) * experiments, (len(results) + 1) * experiments - 1],
+                                'seed': seeds,
                                 'total': total
                             }
                             results.append(result)
@@ -354,8 +489,36 @@ def run(
                                 pickle.dump(results, h, protocol=pickle.HIGHEST_PROTOCOL)
 
                             print(f'\n[{dataset} - {len(results) * experiments}/{total}] '
-                                  f'ETA: {np.mean(times) * (total - len(results)) / 3600:1.2f} h')
+                                  f'ETA: {np.mean(times) * (total - len(results) * experiments) / 3600:1.2f} h')
                             print(json.dumps(result, sort_keys=False, indent=4))
                             print()
 
-    print(f'Total time: {(time.time() - start_experiments) / 3600:1.2f} h')
+    print(f'Total time: {(time.time() - start_experiments) / 3600:1.2f} h\n')
+
+
+def plot_accuracy(dataset, results, hyperparameter, values, savfig, savdir):
+    accuracy_max = []
+    accuracy_all = []
+    for value in values:
+        accuracy_max.append(
+            np.max([np.mean(r['accuracy'])
+                    for r in results
+                    if r['config'][hyperparameter] == value])
+        )
+        accuracy_all.append(
+            [a for r in results for a in r['accuracy'] if r['config'][hyperparameter] == value]
+        )
+    plt.figure(figsize=(9, 5))
+    plt.suptitle(f'{dataset} - {hyperparameter}')
+    plt.subplot(1, 2, 1)
+    plt.title('max accuracy')
+    plt.bar([str(x) for x in values], accuracy_max)
+    plt.xticks(rotation=8)
+    plt.ylim([max(np.min(accuracy_max) - 0.2, 0), 1.0])
+    plt.subplot(1, 2, 2)
+    plt.title('distribution of accuracy')
+    plt.boxplot(accuracy_all)
+    plt.xticks(np.arange(1, len(values) + 1), values, rotation=8)
+
+    if savfig:
+        plt.savefig(f'{savdir}accuracy-{dataset}-{hyperparameter}.jpg')

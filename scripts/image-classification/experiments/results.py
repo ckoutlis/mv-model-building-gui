@@ -1,13 +1,12 @@
 import pickle
 import json
 import numpy as np
-import matplotlib.pyplot as plt
+from src.image_classification.experiment import plt, plot_accuracy
 
 drive = '/home/ckoutlis/disk_2_ubuntu/home/ckoutlis/'
-directory = f'{drive}PycharmProjects/mv-model-building-gui/results/image-classification/'
-dataset = 'cifar10'  # fashion-mnist, mnist, cifar10
-filename = f'{dataset}.pickle'
-path = f'{directory}{filename}'
+directory = f'{drive}PycharmProjects/mv-model-building-gui/results/image-classification/eval/'
+savdir = f'{drive}PycharmProjects/mv-model-building-gui/results/image-classification/figs/'
+savfig = True
 
 # Hyper-parameter grid
 models = [
@@ -35,73 +34,32 @@ iterations_list = [
     500,
     1000,
 ]
+datasets = [
+    'cifar10',
+    'mnist',
+    'fashion-mnist',
+    # '400-bird-species'
+]
 
-with open(path, 'rb') as h:
-    results = pickle.load(h)
+for dataset in datasets:
+    filename = f'{dataset}.pickle'
+    path = f'{directory}{filename}'
 
-for k in K:
-    max_mean_accuracy = np.max([np.mean(r['accuracy']) for r in results if r['config']['k'] == k])
-    best = [r for r in results if r['config']['k'] == k and
-            np.mean(r['accuracy']) == max_mean_accuracy][0]
+    with open(path, 'rb') as h:
+        results = pickle.load(h)
 
-    print(f'[mean] k={k}, accuracy={max_mean_accuracy * 100:1.2f}%')
-    print(json.dumps(best, sort_keys=False, indent=4))
+    for k in K:
+        max_mean_accuracy = np.max([np.mean(r['accuracy']) for r in results if r['config']['k'] == k])
+        best = [r for r in results if r['config']['k'] == k and
+                np.mean(r['accuracy']) == max_mean_accuracy][0]
 
-    print()
+        print(f'[mean] k={k}, accuracy={max_mean_accuracy * 100:1.2f}%')
+        print(json.dumps(best, sort_keys=False, indent=4))
 
-accuracy = []
-for model in models:
-    accuracy.append(
-        np.max([np.mean(r['accuracy'])
-                for r in results
-                if r['config']['model'] == model])
-    )
-plt.figure(figsize=(9, 4))
-plt.bar(models, accuracy)
-plt.ylim([max(np.min(accuracy) - 0.2, 0), 1.0])
+        print()
 
-accuracy = []
-for learning_rate in learning_rates:
-    accuracy.append(
-        np.max([np.mean(r['accuracy'])
-                for r in results
-                if r['config']['learning_rate'] == learning_rate])
-    )
-plt.figure(figsize=(9, 4))
-plt.bar([str(x) for x in learning_rates], accuracy)
-plt.ylim([max(np.min(accuracy) - 0.2, 0), 1.0])
-
-accuracy = []
-for batch_size in batch_sizes:
-    accuracy.append(
-        np.max([np.mean(r['accuracy'])
-                for r in results
-                if r['config']['batch_size'] == batch_size])
-    )
-plt.figure(figsize=(9, 4))
-plt.bar([str(x) for x in batch_sizes], accuracy)
-plt.ylim([max(np.min(accuracy) - 0.2, 0), 1.0])
-
-accuracy = []
-for k in K:
-    accuracy.append(
-        np.max([np.mean(r['accuracy'])
-                for r in results
-                if r['config']['k'] == k])
-    )
-plt.figure(figsize=(9, 4))
-plt.bar([str(x) for x in K], accuracy)
-plt.ylim([max(np.min(accuracy) - 0.2, 0), 1.0])
-
-accuracy = []
-for iterations in iterations_list:
-    accuracy.append(
-        np.max([np.mean(r['accuracy'])
-                for r in results
-                if r['config']['iterations'] == iterations])
-    )
-plt.figure(figsize=(9, 4))
-plt.bar([str(x) for x in iterations_list], accuracy)
-plt.ylim([max(np.min(accuracy) - 0.2, 0), 1.0])
-
-plt.show()
+    plot_accuracy(dataset, results, 'model', models, savfig, savdir)
+    plot_accuracy(dataset, results, 'learning_rate', learning_rates, savfig, savdir)
+    plot_accuracy(dataset, results, 'batch_size', batch_sizes, savfig, savdir)
+    plot_accuracy(dataset, results, 'k', K, savfig, savdir)
+    plot_accuracy(dataset, results, 'iterations', iterations_list, savfig, savdir)
