@@ -11,14 +11,53 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import ImageFolder
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+
+def configuration():
+    config = {
+        # mv-model-building-gui absolute path
+        'basepath': os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        'device': torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
+        'max_classes': 50,
+        'datasets': [
+            'cifar10',
+            'mnist',
+            'fashion-mnist',
+            '400-bird-species'
+        ],
+        'models': [
+            'resnet18',
+            'vit_small_patch16_224_in21k',
+            'resnetv2_50x3_bitm_in21k',
+        ],
+        'unfreezed': [
+            0.0
+        ],
+        'learning_rates': [
+            0.01,
+            0.003
+        ],
+        'batch_sizes': [
+            32,
+            128
+        ],
+        'K': [
+            5,
+            10,
+            50
+        ],
+        'iterations': [
+            500,
+            1000
+        ],
+        'experiments': 3
+    }
+    return config
 
 
 def load_train_data(dataset, model, batch_size, k):
-    # mv-model-building-gui absolute path
-    basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    # resize = 256 if 'vit' in model else 160
-    # crop = 224 if 'vit' in model else 128
     params = transform_params('train', dataset, model)
 
     if dataset in ['mnist', 'fashion-mnist']:
@@ -51,21 +90,21 @@ def load_train_data(dataset, model, batch_size, k):
 
     if dataset == 'cifar10':
         train = torchvision.datasets.CIFAR10(
-            root=f'{basepath}/data/image-classification',
+            root=f'{configuration()["basepath"]}/data/image-classification',
             train=True,
             download=False,
             transform=transform
         )
     elif dataset == 'mnist':
         train = torchvision.datasets.MNIST(
-            root=f'{basepath}/data/image-classification',
+            root=f'{configuration()["basepath"]}/data/image-classification',
             train=True,
             download=False,
             transform=transform
         )
     elif dataset == 'fashion-mnist':
         train = torchvision.datasets.FashionMNIST(
-            root=f'{basepath}/data/image-classification',
+            root=f'{configuration()["basepath"]}/data/image-classification',
             train=True,
             download=False,
             transform=transform
@@ -78,6 +117,9 @@ def load_train_data(dataset, model, batch_size, k):
         raise Exception(f'{dataset} dataset is not implemented.')
 
     num_classes = len(train.classes)
+    max_classes = configuration()['max_classes']
+    num_classes = num_classes if num_classes <= max_classes else max_classes
+
     loader = torch.utils.data.DataLoader(
         train,
         batch_size=1,
@@ -121,10 +163,7 @@ def load_train_data(dataset, model, batch_size, k):
 
 
 def load_test_data(dataset, model, batch_size):
-    # mv-model-building-gui absolute path
-    basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    # resize = 224 if 'vit' in model else 160
     params = transform_params('test', dataset, model)
 
     if dataset in ['mnist', 'fashion-mnist']:
@@ -153,21 +192,21 @@ def load_test_data(dataset, model, batch_size):
 
     if dataset == 'cifar10':
         test = torchvision.datasets.CIFAR10(
-            root=f'{basepath}/data/image-classification',
+            root=f'{configuration()["basepath"]}/data/image-classification',
             train=False,
             download=False,
             transform=transform
         )
     elif dataset == 'mnist':
         test = torchvision.datasets.MNIST(
-            root=f'{basepath}/data/image-classification',
+            root=f'{configuration()["basepath"]}/data/image-classification',
             train=False,
             download=False,
             transform=transform
         )
     elif dataset == 'fashion-mnist':
         test = torchvision.datasets.FashionMNIST(
-            root=f'{basepath}/data/image-classification',
+            root=f'{configuration()["basepath"]}/data/image-classification',
             train=False,
             download=False,
             transform=transform
@@ -179,11 +218,30 @@ def load_test_data(dataset, model, batch_size):
     else:
         raise Exception(f'{dataset} dataset is not implemented.')
 
+    num_classes = len(test.classes)
+    max_classes = configuration()['max_classes']
+    num_classes = num_classes if num_classes <= max_classes else max_classes
+
+    loader = torch.utils.data.DataLoader(
+        test,
+        batch_size=1,
+        shuffle=True,
+        num_workers=2
+    )
+    test = []
+    for data in loader:
+        inputs, labels = data
+        for c in range(num_classes):
+            if labels[0] == c:
+                test.append([inputs.squeeze(), labels.squeeze()])
+
     loader = torch.utils.data.DataLoader(
         test,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2
+        num_workers=2,
+        pin_memory=True,
+        drop_last=False
     )
 
     return loader
@@ -236,16 +294,16 @@ def transform_params(mode, dataset, model):
             },
             '400-bird-species': {
                 'resnet18': {
-                    'resize': 256,
-                    'crop': 224
+                    'resize': 160,
+                    'crop': 128
                 },
                 'vit_small_patch16_224_in21k': {
                     'resize': 256,
                     'crop': 224
                 },
                 'resnetv2_50x3_bitm_in21k': {
-                    'resize': 256,
-                    'crop': 224
+                    'resize': 160,
+                    'crop': 128
                 }
             }
         },
@@ -285,13 +343,13 @@ def transform_params(mode, dataset, model):
             },
             '400-bird-species': {
                 'resnet18': {
-                    'resize': 224,
+                    'resize': 160,
                 },
                 'vit_small_patch16_224_in21k': {
                     'resize': 224,
                 },
                 'resnetv2_50x3_bitm_in21k': {
-                    'resize': 224,
+                    'resize': 160,
                 }
             }
         }
@@ -395,15 +453,15 @@ def evaluate(network, device, loader):
 def run(
         device,
         dataset,
-        savpath,
         models,
         unfreezed_list,
         learning_rates,
         batch_sizes,
         K,
         iterations_list,
-        experiments):
-
+        experiments,
+        savpath
+):
     start_experiments = time.time()
 
     # Total number of experiments to be conducted
@@ -496,6 +554,53 @@ def run(
     print(f'Total time: {(time.time() - start_experiments) / 3600:1.2f} h\n')
 
 
+def get_best_configuration_per_k(results, k, mode, threshold, savfig, savdir):
+    if mode =='best':
+        accuracy = np.max([np.mean(r['accuracy']) for r in results if r['config']['k'] == k])
+        best = [r for r in results if r['config']['k'] == k and np.mean(r['accuracy']) == accuracy][0]
+    elif mode == 'efficient':
+        accuracies = [np.mean(r['accuracy']) for r in results if r['config']['k'] == k]
+        times = [np.mean(r['time']) for r in results if r['config']['k'] == k]
+        configs = [r for r in results if r['config']['k'] == k]
+
+        close_to_best = [(x, y, z) for x, y, z in zip(times, accuracies, configs)
+                         if y > np.max(accuracies) - threshold]
+        if close_to_best:
+            min_time = np.min([w[0] for w in close_to_best])
+            _, accuracy, best = [w for w in close_to_best if w[0] == min_time][0]
+        else:
+            accuracy = np.max([np.mean(r['accuracy']) for r in results if r['config']['k'] == k])
+            best = [r for r in results if r['config']['k'] == k and np.mean(r['accuracy']) == accuracy][0]
+
+        fig, ax = plt.subplots()
+        plt.title(f'{results[0]["dataset"]} - k={k}')
+        plt.scatter(times, accuracies, label='(time, accuracy)')
+        plt.ylim([0, 1])
+        xmin, xmax = plt.gca().get_xlim()
+        rect = patches.Rectangle((xmin, np.max(accuracies) - threshold),
+                                 xmax - xmin,
+                                 threshold,
+                                 facecolor='r',
+                                 alpha=0.5,
+                                 label='close to best zone')
+        ax.add_patch(rect)
+        plt.xlabel('time')
+        plt.ylabel('accuracy')
+        plt.legend()
+
+        if savfig:
+            plt.savefig(f'{savdir}time-vs-accuracy-{results[0]["dataset"]}-k{k}.jpg')
+        plt.close()
+    else:
+        raise Exception('"mode" argument can only take the values "best" or "efficient".')
+
+    print(f'k={k}, accuracy={accuracy * 100:1.2f}%')
+    print(json.dumps(best, sort_keys=False, indent=4))
+    print()
+
+    return best, accuracy
+
+
 def plot_accuracy(dataset, results, hyperparameter, values, savfig, savdir):
     accuracy_max = []
     accuracy_all = []
@@ -522,3 +627,20 @@ def plot_accuracy(dataset, results, hyperparameter, values, savfig, savdir):
 
     if savfig:
         plt.savefig(f'{savdir}accuracy-{dataset}-{hyperparameter}.jpg')
+    plt.close()
+
+
+def plot_time(dataset, results, hyperparameter, values, savfig, savdir):
+    times = []
+    for value in values:
+        times.append(
+            [a for r in results for a in r['time'] if r['config'][hyperparameter] == value]
+        )
+    plt.figure()
+    plt.suptitle(f'average time\n{dataset} - {hyperparameter}')
+    plt.bar([str(x) for x in values], np.mean(times, axis=-1))
+    plt.xticks(rotation=8)
+
+    if savfig:
+        plt.savefig(f'{savdir}time-{dataset}-{hyperparameter}.jpg')
+    plt.close()
