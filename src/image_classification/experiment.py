@@ -19,15 +19,15 @@ def configuration():
         # mv-model-building-gui absolute path
         'basepath': os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         'device': torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
-        'max_classes': 50,
+        'max_classes': 400,
         'datasets': [
-            'cifar10',
-            'mnist',
-            'fashion-mnist',
+            # 'cifar10',
+            # 'mnist',
+            # 'fashion-mnist',
             '400-bird-species'
         ],
         'models': [
-            'resnet18',
+            # 'resnet18',
             'vit_small_patch16_224_in21k',
             'resnetv2_50x3_bitm_in21k',
         ],
@@ -39,19 +39,19 @@ def configuration():
             0.003
         ],
         'batch_sizes': [
-            32,
+            # 32,
             128
         ],
         'K': [
-            5,
-            10,
+            # 5,
+            # 10,
             50
         ],
         'iterations': [
             500,
             1000
         ],
-        'experiments': 3
+        'experiments': 1  # 3
     }
     return config
 
@@ -124,7 +124,7 @@ def load_train_data(dataset, model, batch_size, k):
         train,
         batch_size=1,
         shuffle=True,
-        num_workers=2
+        num_workers=0
     )
     train = []
     class_size = [0] * num_classes
@@ -142,7 +142,7 @@ def load_train_data(dataset, model, batch_size, k):
             train,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=2,
+            num_workers=0,
             pin_memory=True,
             drop_last=False
         )
@@ -150,7 +150,7 @@ def load_train_data(dataset, model, batch_size, k):
         loader = torch.utils.data.DataLoader(
             train,
             batch_size=batch_size,
-            num_workers=2,
+            num_workers=0,
             pin_memory=True,
             sampler=torch.utils.data.RandomSampler(
                 train,
@@ -226,7 +226,7 @@ def load_test_data(dataset, model, batch_size):
         test,
         batch_size=1,
         shuffle=True,
-        num_workers=2
+        num_workers=0
     )
     test = []
     for data in loader:
@@ -239,7 +239,7 @@ def load_test_data(dataset, model, batch_size):
         test,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
+        num_workers=0,
         pin_memory=True,
         drop_last=False
     )
@@ -451,6 +451,7 @@ def evaluate(network, device, loader):
 
 
 def run(
+        init,
         device,
         dataset,
         models,
@@ -482,6 +483,8 @@ def run(
 
                                 # Make the experiments reproducible
                                 seed = len(results) * experiments + experiment
+                                if seed < init:
+                                    continue
                                 seeds.append(seed)
                                 torch.manual_seed(seed)
                                 random.seed(seed)
@@ -525,6 +528,9 @@ def run(
                                 end = time.time()
 
                                 times.append(end - start)
+
+                            if seed < init:
+                                continue
 
                             result = {
                                 'dataset': dataset,
