@@ -10,7 +10,6 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import ImageFolder
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 
