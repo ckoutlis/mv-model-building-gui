@@ -4,7 +4,7 @@ config = configuration()  # configuration of the experiments
 savdir = f'{config["basepath"]}/results/image-classification/eval/'
 
 for dataset in config['datasets']:
-    savpath = f'{savdir}{dataset}-3.pickle'
+    savpath = f'{savdir}{dataset}.pickle'
     run(
         init=0,
         device=config['device'],

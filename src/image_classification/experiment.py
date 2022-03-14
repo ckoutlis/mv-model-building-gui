@@ -21,13 +21,13 @@ def configuration():
         'device': torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
         'max_classes': 400,
         'datasets': [
-            # 'cifar10',
-            # 'mnist',
-            # 'fashion-mnist',
+            'cifar10',
+            'mnist',
+            'fashion-mnist',
             '400-bird-species'
         ],
         'models': [
-            # 'resnet18',
+            'resnet18',
             'vit_small_patch16_224_in21k',
             'resnetv2_50x3_bitm_in21k',
         ],
@@ -39,19 +39,19 @@ def configuration():
             0.003
         ],
         'batch_sizes': [
-            # 32,
+            32,
             128
         ],
         'K': [
-            # 5,
-            # 10,
+            5,
+            10,
             50
         ],
         'iterations': [
             500,
             1000
         ],
-        'experiments': 1  # 3
+        'experiments': 3
     }
     return config
 
