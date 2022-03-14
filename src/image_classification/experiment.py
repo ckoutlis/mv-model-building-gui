@@ -560,56 +560,71 @@ def run(
     print(f'Total time: {(time.time() - start_experiments) / 3600:1.2f} h\n')
 
 
-def get_best_configuration_per_k(results, k, mode, threshold, savfig, savdir):
-    if mode =='best':
-        accuracy = np.max([np.mean(r['accuracy']) for r in results if r['config']['k'] == k])
-        best = [r for r in results if r['config']['k'] == k and np.mean(r['accuracy']) == accuracy][0]
-    elif mode == 'efficient':
-        accuracies = [np.mean(r['accuracy']) for r in results if r['config']['k'] == k]
-        times = [np.mean(r['time']) for r in results if r['config']['k'] == k]
-        configs = [r for r in results if r['config']['k'] == k]
+def get_best_configuration_per_k(results, k, mode, threshold):
+    times = [np.mean(r['time']) for r in results if r['config']['k'] == k]
+    accuracies = [np.mean(r['accuracy']) for r in results if r['config']['k'] == k]
+    configs = [r for r in results if r['config']['k'] == k]
 
-        close_to_best = [(x, y, z) for x, y, z in zip(times, accuracies, configs)
-                         if y > np.max(accuracies) - threshold]
-        if close_to_best:
-            min_time = np.min([w[0] for w in close_to_best])
-            _, accuracy, best = [w for w in close_to_best if w[0] == min_time][0]
-        else:
-            accuracy = np.max([np.mean(r['accuracy']) for r in results if r['config']['k'] == k])
-            best = [r for r in results if r['config']['k'] == k and np.mean(r['accuracy']) == accuracy][0]
+    max_accuracy = np.max(accuracies)
+    close_to_best = [(x, y, z) for x, y, z in zip(times, accuracies, configs)
+                     if y >= max_accuracy - threshold]
 
-        fig, ax = plt.subplots()
-        plt.title(f'{results[0]["dataset"]} - k={k}')
-        plt.scatter(times, accuracies, label='(time, accuracy)')
-        plt.ylim([0, 1])
-        xmin, xmax = plt.gca().get_xlim()
-        rect = patches.Rectangle((xmin, np.max(accuracies) - threshold),
-                                 xmax - xmin,
-                                 threshold,
-                                 facecolor='r',
-                                 alpha=0.5,
-                                 label='close to best zone')
-        ax.add_patch(rect)
-        plt.xlabel('time')
-        plt.ylabel('accuracy')
-        plt.legend()
-
-        if savfig:
-            plt.savefig(f'{savdir}time-vs-accuracy-{results[0]["dataset"]}-k{k}.jpg')
-        plt.close()
+    if mode == 'efficient':
+        min_time = np.min([w[0] for w in close_to_best])
+        duration, accuracy, best = [w for w in close_to_best if w[0] == min_time][0]
+    elif mode == 'best':
+        duration, accuracy, best = [w for w in close_to_best if w[1] == max_accuracy][0]
     else:
         raise Exception('"mode" argument can only take the values "best" or "efficient".')
 
-    print(f'k={k}, accuracy={accuracy * 100:1.2f}%')
+    print(f'k={k}, accuracy={accuracy * 100:1.2f}%, duration={duration:1.1f} sec')
     print(json.dumps(best, sort_keys=False, indent=4))
     print()
 
-    return best, accuracy
+    return times, accuracies, configs, duration, accuracy, best
 
 
-def plot_accuracy(dataset, results, hyperparameter, values, savfig, savdir):
+def plot_time_vs_accuracy(dataset, k, times, accuracies, threshold, duration, accuracy, fig, ax, tit_bool, x_bool, y_bool, leg_bool):
+    arg = np.argmax(accuracies)
+    ax.scatter(times, accuracies, s=5)
+    ax.plot([times[arg]], [accuracies[arg]], 'dc', markersize=5, label='best')
+    ax.plot([duration], [accuracy], 'dg', markersize=5, label='efficient')
+    ax.set_ylim([0.0, 1.05])
+    xmin, xmax = ax.get_xlim()
+    rect = patches.Rectangle((xmin, np.max(accuracies) - threshold),
+                             xmax - xmin,
+                             threshold,
+                             facecolor='r',
+                             alpha=0.5,
+                             label='close to best zone')
+    ax.add_patch(rect)
+    ax.tick_params(axis='both', labelsize=10)
+    ax.xaxis.set_ticks(np.linspace(0, np.max(times), 5).astype(int))
+    ax.grid(True)
+
+    if tit_bool:
+        ax.set_title(f'k={k}')
+
+    if x_bool:
+        ax.set_xlabel('time (sec)', fontsize=10)
+
+    if y_bool:
+        ax.set_ylabel('accuracy', fontsize=10)
+        ax.yaxis.set_ticks([0.0, 0.25, 0.5, 0.75, 1.0], ['0%', '25%', '50%', '75%', '100%'])
+        y0 = ax.get_position().y0
+        y1 = ax.get_position().y1
+        fig.text(0.0, (y1 + y0) / 2, dataset, rotation=90, va='center', fontsize=12)
+    else:
+        ax.yaxis.set_ticks([0.0, 0.25, 0.5, 0.75, 1.0], [''] * 5)
+
+    if leg_bool:
+        ax.legend(fontsize=7)
+
+
+def plot_results(dataset, results, hyperparameter, values, fig, ax, x_bool, y1_bool, y2_bool):
     accuracy_max = []
     accuracy_all = []
+    times = []
     for value in values:
         accuracy_max.append(
             np.max([np.mean(r['accuracy'])
@@ -619,34 +634,47 @@ def plot_accuracy(dataset, results, hyperparameter, values, savfig, savdir):
         accuracy_all.append(
             [a for r in results for a in r['accuracy'] if r['config'][hyperparameter] == value]
         )
-    plt.figure(figsize=(9, 5))
-    plt.suptitle(f'{dataset} - {hyperparameter}')
-    plt.subplot(1, 2, 1)
-    plt.title('max accuracy')
-    plt.bar([str(x) for x in values], accuracy_max)
-    plt.xticks(rotation=8)
-    plt.ylim([max(np.min(accuracy_max) - 0.2, 0), 1.0])
-    plt.subplot(1, 2, 2)
-    plt.title('distribution of accuracy')
-    plt.boxplot(accuracy_all)
-    plt.xticks(np.arange(1, len(values) + 1), values, rotation=8)
-
-    if savfig:
-        plt.savefig(f'{savdir}accuracy-{dataset}-{hyperparameter}.jpg')
-    plt.close()
-
-
-def plot_time(dataset, results, hyperparameter, values, savfig, savdir):
-    times = []
-    for value in values:
         times.append(
             [a for r in results for a in r['time'] if r['config'][hyperparameter] == value]
         )
-    plt.figure()
-    plt.suptitle(f'average time\n{dataset} - {hyperparameter}')
-    plt.bar([str(x) for x in values], np.mean(times, axis=-1))
-    plt.xticks(rotation=8)
 
-    if savfig:
-        plt.savefig(f'{savdir}time-{dataset}-{hyperparameter}.jpg')
-    plt.close()
+    dist = 0.2
+
+    b = ax.boxplot(accuracy_all, positions=np.arange(len(values)) - dist, patch_artist=True)
+    for box in b['boxes']:
+        box.set_facecolor('b')
+    ax.set_ylim([0.0, 1.0])
+
+    ax2 = ax.twinx()
+    b = ax2.boxplot(times, positions=np.arange(len(values)) + dist, patch_artist=True)
+    for box in b['boxes']:
+        box.set_facecolor('r')
+    ax2.set_ylim([0.0, 1000.0])
+
+    if x_bool:
+        ax.set_xlabel(hyperparameter, fontsize=12)
+        ax2.set_xlabel(hyperparameter, fontsize=12)
+        if hyperparameter == 'model':
+            ax.xaxis.set_ticks(np.arange(len(values)), ['R18', 'ViT', 'BiT'], fontsize=10)
+        else:
+            ax.xaxis.set_ticks(np.arange(len(values)), [str(x) for x in values], fontsize=10)
+    else:
+        ax.xaxis.set_ticks([])
+
+    if y1_bool:
+        ax.set_ylabel('accuracy', color='b', fontsize=10)
+        ax.tick_params(axis='y', colors='b')
+        ax.yaxis.set_ticks([0.0, 0.5, 1.0], ['0%', '50%', '100%'], fontsize=8)
+
+        y0 = ax.get_position().y0
+        y1 = ax.get_position().y1
+        fig.text(0.03, (y1 + y0) / 2, dataset, rotation=90, va='center', fontsize=12)
+    else:
+        ax.yaxis.set_ticks([])
+
+    if y2_bool:
+        ax2.set_ylabel("time (sec)", color='r', fontsize=10)
+        ax2.tick_params(axis='y', colors='r')
+        ax2.yaxis.set_ticks([0, 500, 1000], [0, 500, 1000], fontsize=8)
+    else:
+        ax2.yaxis.set_ticks([])
