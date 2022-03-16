@@ -193,7 +193,7 @@ def load_trained_model():
     return model
 
 
-def infer(loader, model, showtxt):
+def classify(loader, model, showtxt):
     basepath = configuration()['basepath']
     with open(f'{basepath}/results/image-classification/models/classes.pickle', 'rb') as h:
         classes = pickle.load(h)
