@@ -1,5 +1,6 @@
 Whole folder structure tree:
 ```
+mv-model-building-gui
 ├── data
 │   ├── face-recognition
 │   └── image-classification
@@ -14,12 +15,15 @@ Whole folder structure tree:
 │   │   ├── eval
 │   │   └── figs
 │   └── image-classification
+│       ├── eval
+│       └── figs
 ├── scripts
 │   ├── face-recognition
 │   │   ├── experiments
 │   │   └── simulation
 │   ├── image-classification
-│   │   └── experiments
+│   │   ├── experiments
+│   │   └── simulation
 │   └── object-detection
 ├── src
 │   ├── face_recognition
@@ -28,5 +32,6 @@ Whole folder structure tree:
 │   │   └── __pycache__
 │   └── __pycache__
 └── tests
+
 
 ```
