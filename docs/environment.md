@@ -17,4 +17,6 @@ pip install keras_applications==1.0.8 --no-deps
 pip install keras_preprocessing==1.1.0 --no-deps
 pip install keras==2.4.3
 pip install mtcnn==0.1.1
+pip install scikit-learn
+pip install git+https://github.com/openai/CLIP.git
 ```
